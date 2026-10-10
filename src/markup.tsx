@@ -1,6 +1,5 @@
 import { useContext, useMemo, useState } from 'preact/hooks'
 import type { ComponentChildren } from 'preact'
-import { Link } from 'wouter-preact'
 import hljs from 'highlight.js/lib/core'
 import typescript from 'highlight.js/lib/languages/typescript'
 import bash from 'highlight.js/lib/languages/bash'
@@ -24,6 +23,9 @@ export type Inline =
 export type Block =
   | { type: 'p'; children: Inline[] }
   | { type: 'quote'; children: Inline[] }
+  | { type: 'heading'; level: number; children: Inline[] }
+  | { type: 'list'; ordered: boolean; items: Inline[][] }
+  | { type: 'divider' }
   | { type: 'pre'; lang: string; code: string }
 
 const inlinePattern =
@@ -66,24 +68,44 @@ export function parse(source: string): Block[] {
   const blocks: Block[] = []
   const parts = source.split(/```(\w*)\n([\s\S]*?)\n```\n?/)
   for (let i = 0; i < parts.length; i += 3) {
-    const lines = parts[i].replace(/^\n+|\n+$/g, '').split('\n')
-    let quote: string[] = []
     let para: string[] = []
-    const flushQuote = () => quote.length && blocks.push({ type: 'quote', children: parseInline(quote.join('\n')) })
-    const flushPara = () => para.length && blocks.push({ type: 'p', children: parseInline(para.join('\n')) })
-    for (const line of lines) {
-      if (line.startsWith('> ')) {
-        flushPara()
-        para = []
+    let quote: string[] = []
+    let list: { ordered: boolean; items: Inline[][] } | null = null
+    const flush = () => {
+      if (para.length) blocks.push({ type: 'p', children: parseInline(para.join('\n')) })
+      if (quote.length) blocks.push({ type: 'quote', children: parseInline(quote.join('\n')) })
+      if (list) blocks.push({ type: 'list', ...list })
+      para = []
+      quote = []
+      list = null
+    }
+    for (const line of parts[i].split('\n')) {
+      const heading = line.match(/^(#{1,3}) (.+)$/)
+      const item = line.match(/^(?:(-)|\d+\.) (.+)$/)
+      if (heading) {
+        flush()
+        blocks.push({ type: 'heading', level: heading[1].length, children: parseInline(heading[2]) })
+      } else if (line === '---') {
+        flush()
+        blocks.push({ type: 'divider' })
+      } else if (item) {
+        const ordered = !item[1]
+        if (!list || list.ordered !== ordered) {
+          flush()
+          list = { ordered, items: [] }
+        }
+        list.items.push(parseInline(item[2]))
+      } else if (line.startsWith('> ')) {
+        if (!quote.length) flush()
         quote.push(line.slice(2))
+      } else if (!line) {
+        flush()
       } else {
-        flushQuote()
-        quote = []
-        if (line || para.length) para.push(line)
+        if (quote.length || list) flush()
+        para.push(line)
       }
     }
-    flushQuote()
-    flushPara()
+    flush()
     if (i + 2 < parts.length) blocks.push({ type: 'pre', lang: parts[i + 1], code: parts[i + 2] })
   }
   return blocks
@@ -107,7 +129,15 @@ function inlineText(nodes: Inline[]): string {
 
 export function toPlain(source: string): string {
   return parse(source)
-    .map((b) => (b.type === 'pre' ? b.code : inlineText(b.children)))
+    .map((b) =>
+      b.type === 'pre'
+        ? b.code
+        : b.type === 'divider'
+          ? ''
+          : b.type === 'list'
+            ? b.items.map(inlineText).join('\n')
+            : inlineText(b.children),
+    )
     .join('\n')
 }
 
@@ -164,9 +194,9 @@ function Inlines({ nodes }: { nodes: Inline[] }) {
             )
           case 'link':
             return n.href.startsWith('/') ? (
-              <Link key={i} class="link" href={n.href}>
+              <a key={i} class="link" href={n.href} onClick={(e) => (e.preventDefault(), ui.go(n.href))}>
                 <Inlines nodes={n.children} />
-              </Link>
+              </a>
             ) : (
               <a key={i} class="link" href={n.href} target="_blank" rel="noopener noreferrer">
                 <Inlines nodes={n.children} />
@@ -203,19 +233,46 @@ export function Markup({ source }: { source: string }) {
   const blocks = useMemo(() => parse(source), [source])
   return (
     <>
-      {blocks.map((b, i) =>
-        b.type === 'pre' ? (
-          <Pre key={i} lang={b.lang} code={b.code} />
-        ) : b.type === 'quote' ? (
-          <blockquote key={i}>
-            <Inlines nodes={b.children} />
-          </blockquote>
-        ) : (
-          <p key={i}>
-            <Inlines nodes={b.children} />
-          </p>
-        ),
-      )}
+      {blocks.map((b, i) => {
+        switch (b.type) {
+          case 'pre':
+            return <Pre key={i} lang={b.lang} code={b.code} />
+          case 'quote':
+            return (
+              <blockquote key={i}>
+                <Inlines nodes={b.children} />
+              </blockquote>
+            )
+          case 'heading': {
+            const Tag = b.level === 1 ? 'h1' : b.level === 2 ? 'h2' : 'h3'
+            return (
+              <Tag key={i}>
+                <Inlines nodes={b.children} />
+              </Tag>
+            )
+          }
+          case 'list': {
+            const Tag = b.ordered ? 'ol' : 'ul'
+            return (
+              <Tag key={i}>
+                {b.items.map((item, j) => (
+                  <li key={j}>
+                    <Inlines nodes={item} />
+                  </li>
+                ))}
+              </Tag>
+            )
+          }
+          case 'divider':
+            return <hr key={i} />
+          case 'p':
+            return (
+              <p key={i}>
+                <Inlines nodes={b.children} />
+              </p>
+            )
+        }
+      })}
     </>
   )
 }

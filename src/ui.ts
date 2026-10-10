@@ -6,4 +6,5 @@ export const Ui = createContext({
   search: (_query: string, _scope?: string) => {},
   view: (_photo: Photo) => {},
   copy: (_text: string) => {},
+  go: (_to: string) => {},
 })

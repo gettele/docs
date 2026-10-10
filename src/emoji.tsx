@@ -7,7 +7,7 @@ const emoji: Record<string, { adaptive: boolean }> = known
 let player: Promise<LottiePlayer> | null = null
 const animations = new Map<string, Promise<unknown>>()
 
-export function CustomEmoji({ id, alt }: { id: string; alt: string }) {
+export function CustomEmoji({ id, alt, loop = true }: { id: string; alt: string; loop?: boolean }) {
   const box = useRef<HTMLSpanElement>(null)
   const adaptive = emoji[id]?.adaptive ?? false
 
@@ -28,7 +28,7 @@ export function CustomEmoji({ id, alt }: { id: string; alt: string }) {
       animation = lottie.loadAnimation({
         container: el,
         renderer: 'svg',
-        loop: true,
+        loop,
         autoplay: false,
         animationData: structuredClone(data),
       })

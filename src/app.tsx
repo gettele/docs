@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'preact/hooks'
+import { useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'preact/hooks'
 import { useLocation, useRoute } from 'wouter-preact'
 import { chats, releaseName, type Chat, type Message } from './chats'
 import { Markup } from './markup'
@@ -34,11 +34,10 @@ function Avatar({ chat, size = 46 }: { chat: Chat; size?: number }) {
       style={{
         width: `${size}px`,
         height: `${size}px`,
-        fontSize: `${Math.round(size * 0.42)}px`,
         backgroundImage: chat.avatar.src ? `url(${chat.avatar.src})` : '',
       }}
     >
-      {chat.avatar.src ? '' : chat.avatar.letter}
+      {chat.avatar.icon && <CustomEmoji id={chat.avatar.icon} alt="" loop={false} />}
     </span>
   )
 }
@@ -209,6 +208,7 @@ function Sidebar({
 
 function Bubble({ chat, m, onView }: { chat: Chat; m: Message; onView: (p: Photo) => void }) {
   const [, navigate] = useLocation()
+  const ui = useContext(Ui)
   const target = m.reply && chat.messages.find((x) => x.id === m.reply!.to)
   return (
     <div class={m.out ? 'msg out' : 'msg'} data-msg={m.id}>
@@ -240,7 +240,7 @@ function Bubble({ chat, m, onView }: { chat: Chat; m: Message; onView: (p: Photo
             <div key={i} class="keys-row">
               {row.map((b) =>
                 b.href.startsWith('/') ? (
-                  <button key={b.text} onClick={() => navigate(b.href)}>
+                  <button key={b.text} onClick={() => ui.go(b.href)}>
                     {b.icon && <CustomEmoji id={b.icon} alt="" />}
                     {b.text}
                   </button>
@@ -259,6 +259,8 @@ function Bubble({ chat, m, onView }: { chat: Chat; m: Message; onView: (p: Photo
   )
 }
 
+const scrollMemory = new Map<string, number>()
+
 function ChatView({ chat, jump, onView, onSearchIn }: { chat: Chat; jump: number | null; onView: (p: Photo) => void; onSearchIn: () => void }) {
   const [, navigate] = useLocation()
   const scroller = useRef<HTMLDivElement>(null)
@@ -276,8 +278,10 @@ function ChatView({ chat, jump, onView, onSearchIn }: { chat: Chat; jump: number
         return
       }
     }
-    el.scrollTop = chat.openAt === 'bottom' ? el.scrollHeight : 0
+    el.scrollTop = scrollMemory.get(chat.id) ?? (chat.openAt === 'bottom' ? el.scrollHeight : 0)
   }, [chat.id, jump])
+
+  const canGoBack = !!history.state?.back
 
   const groups: { key: string; label: string; messages: Message[] }[] = []
   for (const m of chat.messages) {
@@ -290,7 +294,11 @@ function ChatView({ chat, jump, onView, onSearchIn }: { chat: Chat; jump: number
   return (
     <main class="chat">
       <header class="chat-head">
-        <button class="icon back" onClick={() => navigate('/chats')} aria-label="back">
+        <button
+          class={canGoBack ? 'icon back can-go-back' : 'icon back'}
+          onClick={() => (canGoBack ? history.back() : navigate('/chats'))}
+          aria-label="back"
+        >
           <BackIcon />
         </button>
         <Avatar chat={chat} size={42} />
@@ -317,6 +325,7 @@ function ChatView({ chat, jump, onView, onSearchIn }: { chat: Chat; jump: number
         ref={scroller}
         onScroll={(e) => {
           const el = e.currentTarget
+          scrollMemory.set(chat.id, el.scrollTop)
           setDown(el.scrollHeight - el.scrollTop - el.clientHeight > 600)
         }}
       >
@@ -547,6 +556,7 @@ export function App() {
         navigator.clipboard.writeText(text)
         setToast('copied to clipboard')
       },
+      go: (to: string) => navigate(to, { state: { back: true } }),
     }),
     [],
   )
