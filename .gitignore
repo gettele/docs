@@ -4,4 +4,5 @@ dist
 .tele
 .stamp
 .deploy.log
+.deploy.lock
 src/data.json
