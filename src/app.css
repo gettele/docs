@@ -25,6 +25,7 @@
   --code: #1f5f8f;
   --flash: rgb(58 157 230 / 0.28);
   --mark: rgb(255 214 0 / 0.55);
+  --desk: #dfe3e7;
   --a-red: linear-gradient(#ff885e, #ff516a);
   --a-orange: linear-gradient(#ffcd6a, #ffa85c);
   --a-green: linear-gradient(#a0de7e, #54cb68);
@@ -63,6 +64,7 @@
   --code: #9fcdf5;
   --flash: rgb(106 179 243 / 0.22);
   --mark: rgb(255 214 0 / 0.35);
+  --desk: #070b10;
   --hl-keyword: #6ab3f3;
   --hl-string: #9ccc65;
   --hl-number: #f0a36b;
@@ -120,11 +122,30 @@ pre {
   height: 22px;
 }
 
-.app {
+.desk {
   height: 100vh;
   height: 100dvh;
+}
+
+.app {
+  position: relative;
+  height: 100%;
   display: grid;
   grid-template-columns: minmax(280px, 340px) 1fr;
+}
+
+.desk.windowed {
+  display: grid;
+  place-items: center;
+  background: var(--desk);
+}
+
+.windowed .app {
+  width: min(1180px, calc(100vw - 96px));
+  height: min(780px, calc(100dvh - 96px));
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 0 0 1px rgb(0 0 0 / 0.08), 0 24px 64px rgb(0 0 0 / 0.35);
 }
 
 /* sidebar */
@@ -719,7 +740,7 @@ blockquote {
 }
 
 .drawer-shade {
-  position: fixed;
+  position: absolute;
   inset: 0;
   z-index: 10;
   background: rgb(0 0 0 / 0.4);
@@ -819,7 +840,7 @@ blockquote {
 }
 
 .toast {
-  position: fixed;
+  position: absolute;
   top: 20px;
   left: 50%;
   transform: translateX(-50%);
@@ -833,6 +854,15 @@ blockquote {
 @media (max-width: 720px) {
   .app {
     grid-template-columns: minmax(0, 1fr);
+  }
+  .windowed .app {
+    width: 100%;
+    height: 100%;
+    border-radius: 0;
+    box-shadow: none;
+  }
+  .wide-only {
+    display: none;
   }
   .app.show-chat .side,
   .app.show-list .chat {

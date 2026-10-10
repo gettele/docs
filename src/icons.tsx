@@ -37,6 +37,13 @@ export const MoonIcon = () => (
   </svg>
 )
 
+export const WindowIcon = () => (
+  <svg {...base}>
+    <rect x="3.5" y="5" width="17" height="14" rx="2" />
+    <path d="M3.5 9h17" />
+  </svg>
+)
+
 export const CodeIcon = () => (
   <svg {...base}>
     <path d="m8.5 7-5 5 5 5m7-10 5 5-5 5" />

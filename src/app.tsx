@@ -3,7 +3,7 @@ import { useLocation, useRoute } from 'wouter-preact'
 import { chats, releaseName, type Chat, type Message } from './chats'
 import { Markup } from './markup'
 import { Ui, type Photo } from './ui'
-import { BackIcon, CloseIcon, CodeIcon, DownIcon, IssueIcon, MenuIcon, MoonIcon, SearchIcon } from './icons'
+import { BackIcon, CloseIcon, CodeIcon, DownIcon, IssueIcon, MenuIcon, MoonIcon, SearchIcon, WindowIcon } from './icons'
 import data from './data.json'
 
 const timeFormat = new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' })
@@ -334,7 +334,19 @@ function Viewer({ photo, onClose }: { photo: Photo; onClose: () => void }) {
   )
 }
 
-function Drawer({ night, onNight, onClose }: { night: boolean; onNight: () => void; onClose: () => void }) {
+function Drawer({
+  night,
+  windowed,
+  onNight,
+  onWindowed,
+  onClose,
+}: {
+  night: boolean
+  windowed: boolean
+  onNight: () => void
+  onWindowed: () => void
+  onClose: () => void
+}) {
   return (
     <div class="drawer-shade" onClick={onClose}>
       <nav class="drawer" onClick={(e) => e.stopPropagation()}>
@@ -347,6 +359,11 @@ function Drawer({ night, onNight, onClose }: { night: boolean; onNight: () => vo
           <MoonIcon />
           night mode
           <span class={night ? 'switch on' : 'switch'} />
+        </button>
+        <button class="drawer-item wide-only" onClick={onWindowed}>
+          <WindowIcon />
+          window mode
+          <span class={windowed ? 'switch on' : 'switch'} />
         </button>
         <a class="drawer-item" href="https://github.com/nitreojs/tele" target="_blank" rel="noopener noreferrer">
           <CodeIcon />
@@ -370,6 +387,7 @@ export function App() {
   const jump = params?.id ? Number(params.id) : null
 
   const [night, setNight] = useState(() => document.documentElement.dataset.theme === 'night')
+  const [windowed, setWindowed] = useState(() => localStorage.getItem('window') === 'on')
   const [query, setQuery] = useState('')
   const [scope, setScope] = useState<string | null>(null)
   const [photo, setPhoto] = useState<Photo | null>(null)
@@ -413,30 +431,37 @@ export function App() {
 
   return (
     <Ui.Provider value={ui}>
-      <div class={mobileList ? 'app show-list' : 'app show-chat'}>
-        <Sidebar
-          active={chat.id}
-          query={query}
-          scope={scope}
-          onQuery={setQuery}
-          onScope={setScope}
-          onMenu={() => setMenu(true)}
-          onOpen={() => setMobileList(false)}
-          inputRef={input}
-        />
-        <ChatView chat={chat} jump={jump} onView={setPhoto} onSearchIn={() => ui.search('', chat.id)} />
-        {photo && <Viewer photo={photo} onClose={() => setPhoto(null)} />}
-        {menu && (
-          <Drawer
-            night={night}
-            onNight={() => {
-              localStorage.setItem('theme', night ? 'day' : 'night')
-              setNight(!night)
-            }}
-            onClose={() => setMenu(false)}
+      <div class={windowed ? 'desk windowed' : 'desk'}>
+        <div class={mobileList ? 'app show-list' : 'app show-chat'}>
+          <Sidebar
+            active={chat.id}
+            query={query}
+            scope={scope}
+            onQuery={setQuery}
+            onScope={setScope}
+            onMenu={() => setMenu(true)}
+            onOpen={() => setMobileList(false)}
+            inputRef={input}
           />
-        )}
-        {toast && <div class="toast">{toast}</div>}
+          <ChatView chat={chat} jump={jump} onView={setPhoto} onSearchIn={() => ui.search('', chat.id)} />
+          {photo && <Viewer photo={photo} onClose={() => setPhoto(null)} />}
+          {menu && (
+            <Drawer
+              night={night}
+              windowed={windowed}
+              onWindowed={() => {
+                localStorage.setItem('window', windowed ? 'off' : 'on')
+                setWindowed(!windowed)
+              }}
+              onNight={() => {
+                localStorage.setItem('theme', night ? 'day' : 'night')
+                setNight(!night)
+              }}
+              onClose={() => setMenu(false)}
+            />
+          )}
+          {toast && <div class="toast">{toast}</div>}
+        </div>
       </div>
     </Ui.Provider>
   )
