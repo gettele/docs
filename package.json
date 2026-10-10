@@ -1,0 +1,21 @@
+{
+  "name": "gettele.app",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "data": "node scripts/data.mjs",
+    "dev": "node scripts/data.mjs && vite --host 0.0.0.0 --port 5190",
+    "build": "node scripts/data.mjs && tsc --noEmit && vite build"
+  },
+  "dependencies": {
+    "@fontsource/open-sans": "^5.3.0",
+    "highlight.js": "^11.12.0",
+    "preact": "^11.0.1",
+    "wouter-preact": "^3.13.0"
+  },
+  "devDependencies": {
+    "@preact/preset-vite": "^2.10.6",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.4"
+  }
+}

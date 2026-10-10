@@ -1,0 +1,7 @@
+node_modules
+dist
+.dist-next
+.tele
+.stamp
+.deploy.log
+src/data.json
