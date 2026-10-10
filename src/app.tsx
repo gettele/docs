@@ -250,19 +250,12 @@ function ChatView({ chat, jump, onView, onSearchIn }: { chat: Chat; jump: number
     el.scrollTop = chat.openAt === 'bottom' ? el.scrollHeight : 0
   }, [chat.id, jump])
 
-  const rows = []
-  let previous = ''
+  const groups: { key: string; label: string; messages: Message[] }[] = []
   for (const m of chat.messages) {
     const key = chat.pills === 'release' ? releaseName(m.date) || m.date.slice(0, 10) : new Date(m.date).toDateString()
-    if (key !== previous) {
-      rows.push(
-        <div key={`pill-${key}`} class="pill">
-          <span>{chat.pills === 'release' ? `${key} · ${pillDate(m.date)}` : pillDate(m.date)}</span>
-        </div>,
-      )
-      previous = key
-    }
-    rows.push(<Bubble key={m.id} chat={chat} m={m} onView={onView} />)
+    if (groups.at(-1)?.key !== key)
+      groups.push({ key, label: chat.pills === 'release' ? `${key} · ${pillDate(m.date)}` : pillDate(m.date), messages: [] })
+    groups.at(-1)!.messages.push(m)
   }
 
   return (
@@ -298,7 +291,18 @@ function ChatView({ chat, jump, onView, onSearchIn }: { chat: Chat; jump: number
           setDown(el.scrollHeight - el.scrollTop - el.clientHeight > 600)
         }}
       >
-        <div class="messages">{rows}</div>
+        <div class="messages">
+          {groups.map((g) => (
+            <section key={g.key} class="group">
+              <div class="pill">
+                <span>{g.label}</span>
+              </div>
+              {g.messages.map((m) => (
+                <Bubble key={m.id} chat={chat} m={m} onView={onView} />
+              ))}
+            </section>
+          ))}
+        </div>
       </div>
       {down && (
         <button

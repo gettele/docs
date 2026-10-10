@@ -394,6 +394,12 @@ pre {
   gap: 6px;
 }
 
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
 .pill {
   display: flex;
   justify-content: center;
