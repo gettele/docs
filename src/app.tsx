@@ -365,10 +365,59 @@ function Viewer({ photo, onClose }: { photo: Photo; onClose: () => void }) {
 
 const mac = /mac/i.test(navigator.platform)
 
+function placeWindow(frame: HTMLElement, x: number, y: number) {
+  const left = (innerWidth - frame.offsetWidth) / 2
+  const top = (innerHeight - frame.offsetHeight) / 2
+  x = Math.min(Math.max(x, 240 - frame.offsetWidth - left), innerWidth - 120 - left)
+  y = Math.min(Math.max(y, -top), innerHeight - 24 - top)
+  frame.style.transform = x || y ? `translate(${x}px, ${y}px)` : ''
+  frame.dataset.x = String(x)
+  frame.dataset.y = String(y)
+}
+
 function TitleBar() {
   const label = `tele #${data.latest.tag.replace(/^.*-tele\./, '')}`
+  const bar = useRef<HTMLDivElement>(null)
+  const drag = useRef<{ x: number; y: number; px: number; py: number } | null>(null)
+
+  useLayoutEffect(() => {
+    const frame = bar.current!.parentElement!
+    const saved = JSON.parse(localStorage.getItem('window-position') ?? '[0, 0]')
+    placeWindow(frame, saved[0], saved[1])
+    const resized = () => placeWindow(frame, Number(frame.dataset.x), Number(frame.dataset.y))
+    addEventListener('resize', resized)
+    return () => {
+      removeEventListener('resize', resized)
+      frame.style.transform = ''
+    }
+  }, [])
+
+  const release = () => {
+    if (!drag.current) return
+    drag.current = null
+    const frame = bar.current!.parentElement!
+    localStorage.setItem('window-position', JSON.stringify([Number(frame.dataset.x), Number(frame.dataset.y)]))
+  }
+
+  const handlers = {
+    ref: bar,
+    onPointerDown: (e: PointerEvent) => {
+      if (e.button !== 0 || (e.target as Element).closest('.controls, .lights')) return
+      e.preventDefault()
+      bar.current!.setPointerCapture(e.pointerId)
+      const frame = bar.current!.parentElement!
+      drag.current = { x: Number(frame.dataset.x), y: Number(frame.dataset.y), px: e.clientX, py: e.clientY }
+    },
+    onPointerMove: (e: PointerEvent) => {
+      if (!drag.current) return
+      placeWindow(bar.current!.parentElement!, drag.current.x + e.clientX - drag.current.px, drag.current.y + e.clientY - drag.current.py)
+    },
+    onPointerUp: release,
+    onPointerCancel: release,
+  }
+
   return mac ? (
-    <div class="titlebar mac">
+    <div class="titlebar mac" {...handlers}>
       <span class="lights" aria-hidden="true">
         <i />
         <i />
@@ -377,7 +426,7 @@ function TitleBar() {
       <span class="title">{label}</span>
     </div>
   ) : (
-    <div class="titlebar">
+    <div class="titlebar" {...handlers}>
       <span class="title">{label}</span>
       <span class="controls" aria-hidden="true">
         <span class="minimize">
@@ -505,6 +554,7 @@ export function App() {
   return (
     <Ui.Provider value={ui}>
       <div class={windowed ? 'desk windowed' : 'desk'}>
+        {photo && <Viewer photo={photo} onClose={() => setPhoto(null)} />}
         <div class="window">
           {windowed && <TitleBar />}
           <div class={mobileList ? 'app show-list' : 'app show-chat'}>
@@ -519,7 +569,6 @@ export function App() {
               inputRef={input}
             />
             <ChatView chat={chat} jump={jump} onView={setPhoto} onSearchIn={() => ui.search('', chat.id)} />
-            {photo && <Viewer photo={photo} onClose={() => setPhoto(null)} />}
             {menu && (
               <Drawer
                 night={night}
