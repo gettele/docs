@@ -8,7 +8,7 @@ export type Message = {
   out?: boolean
   photo?: { src: string; alt: string }
   reply?: { to: number; quote?: string }
-  buttons?: { text: string; href: string }[][]
+  buttons?: { text: string; href: string; icon?: string }[][]
   plain?: string
 }
 
@@ -18,7 +18,10 @@ export type Chat = {
   subtitle: string
   avatar: { src?: string; letter?: string; color?: string }
   author?: string
-  pinned?: { to?: number; text: string }
+  pinnedMessage?: { to?: number; text: string }
+  pinned?: boolean
+  verified?: boolean
+  channel?: boolean
   openAt: 'top' | 'bottom'
   pills: 'day' | 'release'
   messages: Message[]
@@ -60,7 +63,10 @@ export const chats: Chat[] = [
     id: 'tele',
     title: 'tele',
     subtitle: 'channel',
-    avatar: { src: '/icon.png' },
+    avatar: { src: '/tele.jpg' },
+    pinned: true,
+    verified: true,
+    channel: true,
     openAt: 'top',
     pills: 'day',
     messages: [
@@ -89,7 +95,7 @@ export const chats: Chat[] = [
       {
         id: 6,
         date: tele(),
-        text: "downloaded tele from somewhere and not sure it's really ours? [here's how to check](/safe)",
+        text: "![🔒](tg://emoji?id=5258476306152038031) downloaded tele from somewhere and not sure it's really ours? [here's how to check](/safe)",
       },
       {
         id: 7,
@@ -104,6 +110,7 @@ export const chats: Chat[] = [
     title: 'where to start',
     subtitle: 'channel',
     avatar: { letter: 'w', color: 'orange' },
+    channel: true,
     openAt: 'top',
     pills: 'day',
     messages: [
@@ -126,7 +133,8 @@ export const chats: Chat[] = [
     title: 'features',
     subtitle: `${total} posts`,
     avatar: { letter: 'f', color: 'green' },
-    pinned: { text: `every post is one thing tele changes, ${total} so far. click a #hashtag to see a whole settings page` },
+    channel: true,
+    pinnedMessage: { text: `every post is one thing tele changes, ${total} so far. click a #hashtag to see a whole settings page` },
     openAt: 'bottom',
     pills: 'release',
     messages: data.features.map((f) => ({
@@ -175,7 +183,7 @@ export const chats: Chat[] = [
       { id: 10, date: safe(), reply: { to: 8, quote: transcript[1] }, text: 'github has one receipt for exactly this fingerprint' },
       { id: 11, date: safe(), reply: { to: 8, quote: transcript[6] }, text: 'the receipt says the file was built from our code, not from a copy of it' },
       { id: 12, date: safe(), reply: { to: 8, quote: transcript[8] }, text: "and it was signed by github's build machines, not by a person" },
-      { id: 13, date: safe(), reply: { to: 8, quote: transcript[10] }, text: 'this is the line you want' },
+      { id: 13, date: safe(), reply: { to: 8, quote: transcript[10] }, text: '![✅](tg://emoji?id=5260416304224936047) this is the line you want' },
       { id: 14, date: safe(), out: true, text: 'and if it says something else?' },
       {
         id: 15,
@@ -189,7 +197,8 @@ export const chats: Chat[] = [
     title: 'scripts',
     subtitle: 'coming soon',
     avatar: { letter: 's', color: 'cyan' },
-    pinned: { to: 1, text: 'not in any release yet' },
+    channel: true,
+    pinnedMessage: { to: 1, text: 'not in any release yet' },
     openAt: 'top',
     pills: 'day',
     messages: [
@@ -216,35 +225,36 @@ export const chats: Chat[] = [
     title: 'download',
     subtitle: latest.tag,
     avatar: { letter: 'd', color: 'blue' },
+    channel: true,
     openAt: 'top',
     pills: 'day',
     messages: [
       {
         id: 1,
         date: latest.date,
-        text: `**tele ${latest.tag.replace(/^v[\d.]+-tele\./, '')}**, built on telegram desktop ${latest.tag.replace(/-tele\.\d+$/, '')}`,
+        text: `![⬇️](tg://emoji?id=6037157012242960559) **tele ${latest.tag.replace(/^v[\d.]+-tele\./, '')}**, built on telegram desktop ${latest.tag.replace(/-tele\.\d+$/, '')}`,
         buttons: [
           [
-            { text: `windows · ${mb(zip.size)}`, href: zip.url },
-            { text: `linux · ${mb(asset('-linux64.zip').size)}`, href: asset('-linux64.zip').url },
-            { text: `macos · ${mb(asset('-macos.dmg').size)}`, href: asset('-macos.dmg').url },
+            { text: `windows · ${mb(zip.size)}`, href: zip.url, icon: '6298333093044422573' },
+            { text: `linux · ${mb(asset('-linux64.zip').size)}`, href: asset('-linux64.zip').url, icon: '5850237475720532199' },
+            { text: `macos · ${mb(asset('-macos.dmg').size)}`, href: asset('-macos.dmg').url, icon: '5303166548968483243' },
           ],
         ],
       },
       {
         id: 2,
         date: latest.date,
-        text: '**windows**: unpack the zip anywhere and run tele.exe. it keeps its data in the same folder and adds itself to the start menu',
+        text: '![🪟](tg://emoji?id=6298333093044422573) **windows**: unpack the zip anywhere and run tele.exe. it keeps its data in the same folder and adds itself to the start menu',
       },
       {
         id: 3,
         date: latest.date,
-        text: '**linux**: unpack it somewhere you can write to, like `~/.local/opt/tele`, and run `./tele`. your data goes to `~/.local/share/tele`',
+        text: '![🐧](tg://emoji?id=5850237475720532199) **linux**: unpack it somewhere you can write to, like `~/.local/opt/tele`, and run `./tele`. your data goes to `~/.local/share/tele`',
       },
       {
         id: 4,
         date: latest.date,
-        text: "**macos**: drag tele into applications. it isn't notarized, so run this once before opening it:\n```bash\nxattr -dr com.apple.quarantine /Applications/tele.app\n```",
+        text: "![🍎](tg://emoji?id=5303166548968483243) **macos**: drag tele into applications. it isn't notarized, so run this once before opening it:\n```bash\nxattr -dr com.apple.quarantine /Applications/tele.app\n```",
       },
       {
         id: 5,

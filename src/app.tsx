@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'preact/ho
 import { useLocation, useRoute } from 'wouter-preact'
 import { chats, releaseName, type Chat, type Message } from './chats'
 import { Markup } from './markup'
+import { CustomEmoji } from './emoji'
 import { Ui, type Photo } from './ui'
 import { BackIcon, CloseIcon, CodeIcon, DownIcon, IssueIcon, MenuIcon, MoonIcon, SearchIcon, WindowIcon } from './icons'
 import data from './data.json'
@@ -27,11 +28,32 @@ function pillDate(iso: string) {
 }
 
 function Avatar({ chat, size = 46 }: { chat: Chat; size?: number }) {
-  return chat.avatar.src ? (
-    <img class="avatar" src={chat.avatar.src} alt="" width={size} height={size} />
-  ) : (
-    <span class={`avatar letter ${chat.avatar.color}`} style={{ width: `${size}px`, height: `${size}px`, fontSize: `${Math.round(size * 0.42)}px` }}>
-      {chat.avatar.letter}
+  return (
+    <span
+      class={chat.avatar.src ? 'avatar' : `avatar letter ${chat.avatar.color}`}
+      style={{
+        width: `${size}px`,
+        height: `${size}px`,
+        fontSize: `${Math.round(size * 0.42)}px`,
+        backgroundImage: chat.avatar.src ? `url(${chat.avatar.src})` : '',
+      }}
+    >
+      {chat.avatar.src ? '' : chat.avatar.letter}
+    </span>
+  )
+}
+
+function Name({ chat, row }: { chat: Chat; row?: boolean }) {
+  return (
+    <span class="name">
+      {row && chat.channel && <i class="channel-icon" />}
+      <b>{chat.title}</b>
+      {chat.verified && (
+        <span class="verified" title="verified">
+          <i class="star" />
+          <i class="check" />
+        </span>
+      )}
     </span>
   )
 }
@@ -134,10 +156,13 @@ function Sidebar({
                 <Avatar chat={c} />
                 <span class="row-text">
                   <span class="row-top">
-                    <b>{c.title}</b>
-                    <span>{listDate(last.date)}</span>
+                    <Name chat={c} row />
+                    <span class="date">{listDate(last.date)}</span>
                   </span>
-                  <span class="row-preview">{last.photo ? 'photo' : last.plain}</span>
+                  <span class="row-bottom">
+                    <span class="row-preview">{last.photo ? 'photo' : last.plain}</span>
+                    {c.pinned && <i class="pin-icon" title="pinned" />}
+                  </span>
                 </span>
               </button>
             )
@@ -149,7 +174,9 @@ function Sidebar({
               <button key={c.id} class="row" onClick={() => (onQuery(''), onOpen(), navigate(`/${c.id}`))}>
                 <Avatar chat={c} />
                 <span class="row-text">
-                  <b>{c.title}</b>
+                  <span class="row-top">
+                    <Name chat={c} row />
+                  </span>
                   <span class="row-preview">{c.subtitle}</span>
                 </span>
               </button>
@@ -164,8 +191,8 @@ function Sidebar({
                 <Avatar chat={chat} />
                 <span class="row-text">
                   <span class="row-top">
-                    <b>{chat.title}</b>
-                    <span>{listDate(m.date)}</span>
+                    <Name chat={chat} row />
+                    <span class="date">{listDate(m.date)}</span>
                   </span>
                   <span class="row-preview">
                     <Highlighted text={m.plain!.replace(/\s+/g, ' ')} query={q} />
@@ -214,10 +241,12 @@ function Bubble({ chat, m, onView }: { chat: Chat; m: Message; onView: (p: Photo
               {row.map((b) =>
                 b.href.startsWith('/') ? (
                   <button key={b.text} onClick={() => navigate(b.href)}>
+                    {b.icon && <CustomEmoji id={b.icon} alt="" />}
                     {b.text}
                   </button>
                 ) : (
                   <a key={b.text} href={b.href}>
+                    {b.icon && <CustomEmoji id={b.icon} alt="" />}
                     {b.text}
                   </a>
                 ),
@@ -266,21 +295,21 @@ function ChatView({ chat, jump, onView, onSearchIn }: { chat: Chat; jump: number
         </button>
         <Avatar chat={chat} size={42} />
         <div class="chat-title">
-          <b>{chat.title}</b>
-          <span>{chat.subtitle}</span>
+          <Name chat={chat} />
+          <span class="subtitle">{chat.subtitle}</span>
         </div>
         <button class="icon" onClick={onSearchIn} aria-label={`search in ${chat.title}`}>
           <SearchIcon />
         </button>
       </header>
-      {chat.pinned && (
+      {chat.pinnedMessage && (
         <button
           class="pinned"
-          onClick={() => chat.pinned!.to && navigate(`/${chat.id}/${chat.pinned!.to}`)}
-          disabled={!chat.pinned.to}
+          onClick={() => chat.pinnedMessage!.to && navigate(`/${chat.id}/${chat.pinnedMessage!.to}`)}
+          disabled={!chat.pinnedMessage.to}
         >
           <b>pinned message</b>
-          <span>{chat.pinned.text}</span>
+          <span>{chat.pinnedMessage.text}</span>
         </button>
       )}
       <div
@@ -330,6 +359,37 @@ function Viewer({ photo, onClose }: { photo: Photo; onClose: () => void }) {
       </button>
       <img src={photo.src} alt={photo.alt} onClick={(e) => e.stopPropagation()} />
       {photo.caption && <p onClick={(e) => e.stopPropagation()}>{photo.caption}</p>}
+    </div>
+  )
+}
+
+const mac = /mac/i.test(navigator.platform)
+
+function TitleBar() {
+  const label = `tele #${data.latest.tag.replace(/^.*-tele\./, '')}`
+  return mac ? (
+    <div class="titlebar mac">
+      <span class="lights" aria-hidden="true">
+        <i />
+        <i />
+        <i />
+      </span>
+      <span class="title">{label}</span>
+    </div>
+  ) : (
+    <div class="titlebar">
+      <span class="title">{label}</span>
+      <span class="controls" aria-hidden="true">
+        <span class="minimize">
+          <i />
+        </span>
+        <span class="maximize">
+          <i />
+        </span>
+        <span class="close">
+          <i />
+        </span>
+      </span>
     </div>
   )
 }
@@ -399,6 +459,19 @@ export function App() {
   useEffect(() => setMobileList(location === '/chats'), [location])
 
   useEffect(() => {
+    const timers = new WeakMap<Element, number>()
+    const scrolled = (e: Event) => {
+      const el = e.target
+      if (!(el instanceof Element)) return
+      el.classList.add('scrolling')
+      clearTimeout(timers.get(el))
+      timers.set(el, window.setTimeout(() => el.classList.remove('scrolling'), 1000))
+    }
+    document.addEventListener('scroll', scrolled, true)
+    return () => document.removeEventListener('scroll', scrolled, true)
+  }, [])
+
+  useEffect(() => {
     document.documentElement.dataset.theme = night ? 'night' : 'day'
   }, [night])
 
@@ -432,35 +505,38 @@ export function App() {
   return (
     <Ui.Provider value={ui}>
       <div class={windowed ? 'desk windowed' : 'desk'}>
-        <div class={mobileList ? 'app show-list' : 'app show-chat'}>
-          <Sidebar
-            active={chat.id}
-            query={query}
-            scope={scope}
-            onQuery={setQuery}
-            onScope={setScope}
-            onMenu={() => setMenu(true)}
-            onOpen={() => setMobileList(false)}
-            inputRef={input}
-          />
-          <ChatView chat={chat} jump={jump} onView={setPhoto} onSearchIn={() => ui.search('', chat.id)} />
-          {photo && <Viewer photo={photo} onClose={() => setPhoto(null)} />}
-          {menu && (
-            <Drawer
-              night={night}
-              windowed={windowed}
-              onWindowed={() => {
-                localStorage.setItem('window', windowed ? 'off' : 'on')
-                setWindowed(!windowed)
-              }}
-              onNight={() => {
-                localStorage.setItem('theme', night ? 'day' : 'night')
-                setNight(!night)
-              }}
-              onClose={() => setMenu(false)}
+        <div class="window">
+          {windowed && <TitleBar />}
+          <div class={mobileList ? 'app show-list' : 'app show-chat'}>
+            <Sidebar
+              active={chat.id}
+              query={query}
+              scope={scope}
+              onQuery={setQuery}
+              onScope={setScope}
+              onMenu={() => setMenu(true)}
+              onOpen={() => setMobileList(false)}
+              inputRef={input}
             />
-          )}
-          {toast && <div class="toast">{toast}</div>}
+            <ChatView chat={chat} jump={jump} onView={setPhoto} onSearchIn={() => ui.search('', chat.id)} />
+            {photo && <Viewer photo={photo} onClose={() => setPhoto(null)} />}
+            {menu && (
+              <Drawer
+                night={night}
+                windowed={windowed}
+                onWindowed={() => {
+                  localStorage.setItem('window', windowed ? 'off' : 'on')
+                  setWindowed(!windowed)
+                }}
+                onNight={() => {
+                  localStorage.setItem('theme', night ? 'day' : 'night')
+                  setNight(!night)
+                }}
+                onClose={() => setMenu(false)}
+              />
+            )}
+            {toast && <div class="toast">{toast}</div>}
+          </div>
         </div>
       </div>
     </Ui.Provider>
