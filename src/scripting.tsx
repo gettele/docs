@@ -12,6 +12,63 @@ const doc: { title: string; intro: string; sections: Section[] } = reference
 const owner = new Map<string, string>(doc.sections.flatMap((s) => [[s.id, s.id] as const, ...s.items.map((i) => [i.id, s.id] as const)]))
 const plainClick = (e: MouseEvent) => !(e.ctrlKey || e.metaKey || e.shiftKey || e.button)
 
+const keyword = /^(type|class|interface|grant:) (.+)$/
+
+function Title({ text, code }: { text: string; code?: boolean }) {
+  const parts = text.match(keyword)
+  if (parts) {
+    return (
+      <>
+        <span class="ref-kw">{parts[1].replace(':', '')}</span> <span class="ref-code">{parts[2]}</span>
+      </>
+    )
+  }
+  return code || /[()]/.test(text) || /^[\w$]+(\.[\w$]+)+/.test(text) ? <span class="ref-code">{text}</span> : <span>{text}</span>
+}
+
+type Row = { item: Item; depth: number; label: string; parent: number }
+
+function rowsOf(items: Item[]): Row[] {
+  const rows: Row[] = []
+  const open: { row: number; path?: string; close?: string; last?: string; type?: string; member?: string }[] = []
+  for (const item of items) {
+    const { title } = item
+    const typed = title.match(/^(?:type|class|interface) ([\w$]+)$/)?.[1]
+    const name = title.match(/^([\w$]+)\./)?.[1]
+    let parent: (typeof open)[number] | undefined
+    let label = title
+    while (open.length && !parent) {
+      const top = open.at(-1)!
+      if (!top.member && top.type && name && name !== 'tg' && top.type.toLowerCase().includes(name.toLowerCase())) {
+        top.member = `${name}.`
+      }
+      const prefix = [top.path, top.member].find((p) => p && title.startsWith(p) && title.length > p.length)
+      if (prefix) {
+        parent = top
+        label = title.slice(prefix.length)
+        if (prefix === top.path && top.close && label.endsWith(top.close)) label = label.slice(0, -top.close.length)
+      } else if (top.last && typed?.toLowerCase().startsWith(top.last.toLowerCase())) {
+        parent = top
+      } else {
+        open.pop()
+      }
+    }
+    rows.push({ item, depth: open.length, label, parent: parent?.row ?? -1 })
+    const grant = /^grant: [\w.]+$/.test(title)
+    const path = /^[\w$]+(\.[\w$]+)*$/.test(title)
+    open.push({
+      row: rows.length - 1,
+      path: grant ? `${title}(` : path ? `${title}.` : undefined,
+      close: grant ? ')' : undefined,
+      last: path ? title.split('.').at(-1) : undefined,
+      type: typed ?? title.match(/(?:^|\.)([A-Z][\w$]*)$/)?.[1],
+    })
+  }
+  return rows
+}
+
+const trees: Record<string, Row[]> = Object.fromEntries(doc.sections.map((s) => [s.id, rowsOf(s.items)]))
+
 function Anchor({ id, onCopy }: { id: string; onCopy: (id: string) => void }) {
   return (
     <a
@@ -28,21 +85,27 @@ function Anchor({ id, onCopy }: { id: string; onCopy: (id: string) => void }) {
 function Tree({ active, filter, onOpen }: { active: string; filter: string; onOpen: (id: string) => void }) {
   const side = useRef<HTMLElement>(null)
   const q = filter.trim().toLowerCase()
-  const sections = useMemo(
-    () =>
-      q
-        ? doc.sections
-            .map((s) => (s.title.toLowerCase().includes(q) ? s : { ...s, items: s.items.filter((i) => i.title.toLowerCase().includes(q)) }))
-            .filter((s) => s.items.length || s.title.toLowerCase().includes(q))
-        : doc.sections,
-    [q],
-  )
+  const sections = useMemo(() => {
+    const all = doc.sections.map((s) => ({ section: s, rows: trees[s.id] }))
+    if (!q) return all
+    return all
+      .map(({ section, rows }) => {
+        if (section.title.toLowerCase().includes(q)) return { section, rows }
+        const keep = new Set<number>()
+        rows.forEach((row, index) => {
+          if (!row.item.title.toLowerCase().includes(q)) return
+          for (let at = index; at >= 0 && !keep.has(at); at = rows[at].parent) keep.add(at)
+        })
+        return { section, rows: rows.filter((_, index) => keep.has(index)) }
+      })
+      .filter(({ section, rows }) => rows.length || section.title.toLowerCase().includes(q))
+  }, [q])
 
   useEffect(() => side.current!.querySelector('.on')?.scrollIntoView({ block: 'nearest' }), [active, q])
 
   return (
     <nav class="ref-tree" ref={side}>
-      {sections.map((s) => (
+      {sections.map(({ section: s, rows }) => (
         <div key={s.id} class="ref-group">
           <a
             class={s.id === active ? 'ref-section on' : owner.get(active) === s.id ? 'ref-section in' : 'ref-section'}
@@ -51,15 +114,16 @@ function Tree({ active, filter, onOpen }: { active: string; filter: string; onOp
           >
             {s.title}
           </a>
-          {s.items.map((i) => (
+          {rows.map(({ item: i, depth, label }) => (
             <a
               key={i.id}
-              class={i.id === active ? 'ref-link on' : 'ref-link'}
+              class={`ref-link${depth ? ' sub' : ''}${i.id === active ? ' on' : ''}`}
+              style={{ '--depth': depth }}
               href={`/scripting/${i.id}`}
               title={i.title}
               onClick={(e) => plainClick(e) && (e.preventDefault(), onOpen(i.id))}
             >
-              {i.title}
+              <Title text={label} code={depth > 0} />
             </a>
           ))}
         </div>
@@ -219,7 +283,7 @@ export function Scripting() {
                   {s.items.map((i) => (
                     <div key={i.id} class="ref-item" data-ref={i.id}>
                       <h3>
-                        <span>{i.title}</span>
+                        <Title text={i.title} />
                         <Anchor id={i.id} onCopy={copyLink} />
                       </h3>
                       <Doc source={i.body} />

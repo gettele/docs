@@ -1319,10 +1319,49 @@ blockquote {
 }
 
 .ref-link {
-  padding: 4px 16px 4px 26px;
+  position: relative;
+  padding: 4px 16px 4px calc(26px + var(--depth, 0) * 14px);
   color: var(--muted);
-  font-family: ui-monospace, 'Cascadia Mono', Consolas, Menlo, monospace;
+  font-size: 13px;
+}
+
+.ref-link.sub {
   font-size: 12.5px;
+}
+
+.ref-link.sub::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: calc(19px + var(--depth) * 14px);
+  width: 1px;
+  background: var(--border);
+}
+
+.ref-code,
+.ref-kw {
+  font-family: ui-monospace, 'Cascadia Mono', Consolas, Menlo, monospace;
+}
+
+.ref-link .ref-code {
+  color: var(--code);
+  font-size: 12.5px;
+}
+
+.ref-kw {
+  color: var(--hl-keyword);
+  opacity: 0.75;
+}
+
+.ref-link .ref-kw {
+  font-size: 12px;
+}
+
+.ref-link.on .ref-code,
+.ref-link.on .ref-kw {
+  color: inherit;
+  opacity: 1;
 }
 
 .ref-section:hover,
@@ -1397,9 +1436,12 @@ blockquote {
 
 .ref-item h3 {
   margin-top: 6px;
-  font-family: ui-monospace, 'Cascadia Mono', Consolas, Menlo, monospace;
   font-size: 16px;
   font-weight: 600;
+}
+
+.ref-item h3 .ref-kw {
+  font-weight: 400;
 }
 
 [data-ref] {
