@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync, existsSync, copyFileSync, mkdirSync, rmSync } from 'node:fs'
+import { readFileSync, writeFileSync, existsSync, mkdirSync, rmSync } from 'node:fs'
 import { join } from 'node:path'
 
 const repo = process.env.TELE_REPO ?? new URL('../.tele', import.meta.url).pathname
@@ -74,8 +74,7 @@ const scripting = { title: '', intro: '', sections: [] }
 const skill = existsSync(scriptingFile)
 rmSync(skillDir, { recursive: true, force: true })
 if (skill) {
-  mkdirSync(skillDir, { recursive: true })
-  copyFileSync(scriptingFile, new URL('SKILL.md', skillDir))
+  mkdirSync(new URL('reference/', skillDir), { recursive: true })
 
   const ids = new Set()
   const unique = (base) => {
@@ -96,7 +95,9 @@ if (skill) {
   const intro = { lines: [] }
   let target = intro
   let fence = false
-  const source = readFileSync(scriptingFile, 'utf8').replace(/\r\n/g, '\n').replace(/^---\n[\s\S]*?\n---\n/, '')
+  const raw = readFileSync(scriptingFile, 'utf8').replace(/\r\n/g, '\n')
+  const frontmatter = raw.match(/^---\n[\s\S]*?\n---\n/)?.[0] ?? ''
+  const source = raw.slice(frontmatter.length)
   for (const line of source.split('\n')) {
     if (/^\s*(```|~~~)/.test(line)) fence = !fence
     const heading = !fence && line.match(/^(#{1,6}) (.+?)\s*$/)
@@ -125,19 +126,75 @@ if (skill) {
       .trim()
       .replace(/\]\((?:\.?\/?scripting\.md)?#([^)\s]+)\)/g, (_, to) => `](/scripting/${anchors.get(to) ?? to})`)
 
+  const parsed = scripting.sections
   scripting.intro = body(intro)
-  scripting.sections = scripting.sections.map((s) => ({
+  scripting.sections = parsed.map((s) => ({
     id: s.id,
     title: s.title,
     intro: body(s),
     items: s.items.map((i) => ({ id: i.id, title: i.title, body: body(i) })),
   }))
+
+  const fileOf = new Map()
+  const localAnchors = new Map()
+  for (const s of parsed) {
+    const here = new Map()
+    for (const { id, title } of [s, ...s.items]) {
+      const base = githubSlug(title)
+      const count = here.get(base) ?? 0
+      here.set(base, count + 1)
+      fileOf.set(id, s.id)
+      localAnchors.set(id, count ? `${base}-${count}` : base)
+    }
+  }
+  const markdown = (lines, from) =>
+    lines
+      .join('\n')
+      .trim()
+      .replace(/\]\((?:\.?\/?scripting\.md)?#([^)\s]+)\)/g, (link, to) => {
+        const id = anchors.get(to)
+        if (!id) return link
+        const file = fileOf.get(id)
+        const hash = localAnchors.get(id)
+        if (!from) return `](reference/${file}.md#${hash})`
+        return file === from ? `](#${hash})` : `](${file}.md#${hash})`
+      })
+
+  for (const s of parsed) {
+    const parts = [
+      `# ${s.title}`,
+      `part of the ${scripting.title} reference. the index of every section is [SKILL.md](../SKILL.md).`,
+      markdown(s.lines, s.id),
+      ...s.items.map((i) => `## ${i.title}\n\n${markdown(i.lines, s.id)}`),
+    ]
+    writeFileSync(new URL(`reference/${s.id}.md`, skillDir), parts.filter(Boolean).join('\n\n') + '\n')
+  }
+
+  const firstParagraph = (lines) =>
+    markdown(lines, null)
+      .split(/\n{2,}/)
+      .find((p) => p && !/^(```|\||#|- |\d+\. |>)/.test(p)) ?? ''
+  const link = (s) => `[${s.title}](reference/${s.id}.md)`
+  const index = [
+    `${frontmatter}\n# ${scripting.title}`,
+    markdown(intro.lines, null),
+    '## how to use this reference',
+    'this file is the index. the reference itself is one file per section in `reference/`, next to this file (on the web: https://gettele.app/scripting/reference/). open only the sections you need: every entry there has its signature from `tele.d.ts`, what it does, the grant it needs, its parameters, what it returns, what it throws, and an example. links between entries point into those files.',
+    `- writing a new script: read ${parsed.slice(0, 4).map(link).join(', ')} first.\n- using a method, type, event or grant: find it in the list below and open its section.`,
+    '## sections',
+    ...parsed.map((s) =>
+      [`### ${link(s)}`, firstParagraph(s.lines), s.items.map((i) => `- ${i.title}`).join('\n')]
+        .filter(Boolean)
+        .join('\n\n'),
+    ),
+  ]
+  writeFileSync(new URL('SKILL.md', skillDir), index.join('\n\n') + '\n')
 }
 scripting.title ||= 'scripting'
 writeFileSync(scriptingOut, JSON.stringify(scripting, null, 1))
 console.log(
   skill
-    ? `scripting.json: ${scripting.sections.length} sections, ${scripting.sections.reduce((n, s) => n + s.items.length, 0)} items, SKILL.md copied`
+    ? `scripting.json: ${scripting.sections.length} sections, ${scripting.sections.reduce((n, s) => n + s.items.length, 0)} items; SKILL.md and ${scripting.sections.length} reference files`
     : `scripting.json: no ${scriptingFile}, wrote an empty reference`,
 )
 

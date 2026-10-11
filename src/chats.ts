@@ -252,7 +252,7 @@ export const chats: Chat[] = [
       {
         id: 4,
         date: scripts(),
-        text: '## the full reference\nevery method, event and grant, with examples: [gettele.app/scripting](/scripting)\n\n[SKILL.md](/scripting/SKILL.md) is the same reference in one file. give this to your ai agent and it can write scripts for you',
+        text: '## the full reference\nevery method, event and grant, with examples: [gettele.app/scripting](/scripting)\n\n[SKILL.md](/scripting/SKILL.md) is the version for ai agents: a short index that opens one section at a time. give it to your agent and it can write scripts for you',
         buttons: [[{ text: 'open the reference', href: '/scripting', icon: icons.gear }]],
       },
     ],
