@@ -150,7 +150,7 @@ function Spoiler({ children }: { children: ComponentChildren }) {
   )
 }
 
-function Inlines({ nodes }: { nodes: Inline[] }) {
+export function Inlines({ nodes }: { nodes: Inline[] }) {
   const ui = useContext(Ui)
   return (
     <>
@@ -193,7 +193,7 @@ function Inlines({ nodes }: { nodes: Inline[] }) {
               </a>
             )
           case 'link':
-            return n.href.startsWith('/') ? (
+            return n.href.startsWith('/') && !/\.\w+$/.test(n.href) ? (
               <a key={i} class="link" href={n.href} onClick={(e) => (e.preventDefault(), ui.go(n.href))}>
                 <Inlines nodes={n.children} />
               </a>
@@ -208,7 +208,7 @@ function Inlines({ nodes }: { nodes: Inline[] }) {
   )
 }
 
-function Pre({ lang, code }: { lang: string; code: string }) {
+export function Pre({ lang, code }: { lang: string; code: string }) {
   const ui = useContext(Ui)
   const html = useMemo(
     () => (lang && hljs.getLanguage(lang) ? hljs.highlight(code, { language: lang }).value : null),

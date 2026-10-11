@@ -227,10 +227,10 @@ export const chats: Chat[] = [
   {
     id: 'scripts',
     title: 'scripts',
-    subtitle: 'coming soon',
+    subtitle: 'beta',
     avatar: { icon: icons.gear, color: 'red' },
     channel: true,
-    pinnedMessage: { to: 1, text: 'not in any release yet' },
+    pinnedMessage: { to: 1, text: 'since tele 20: settings → tele → scripts β' },
     openAt: 'top',
     pills: 'day',
     messages: [
@@ -249,7 +249,12 @@ export const chats: Chat[] = [
         date: scripts(),
         text: '> every script lists what it needs, and tele asks you before it gets any of it',
       },
-      { id: 4, date: scripts(), text: "we'll post the full docs here when scripts ship" },
+      {
+        id: 4,
+        date: scripts(),
+        text: '## the full reference\nevery method, event and grant, with examples: [gettele.app/scripting](/scripting)\n\n[SKILL.md](/scripting/SKILL.md) is the same reference in one file. give this to your ai agent and it can write scripts for you',
+        buttons: [[{ text: 'open the reference', href: '/scripting', icon: icons.gear }]],
+      },
     ],
   },
   {

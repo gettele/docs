@@ -1,5 +1,6 @@
+import type { ComponentType } from 'preact'
 import { useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'preact/hooks'
-import { useLocation, useRoute } from 'wouter-preact'
+import { Route, Switch, useLocation, useRoute } from 'wouter-preact'
 import { chats, releaseName, type Chat, type Message } from './chats'
 import { Markup } from './markup'
 import { CustomEmoji } from './emoji'
@@ -497,7 +498,24 @@ function Drawer({
   )
 }
 
+function Reference() {
+  const [Page, setPage] = useState<ComponentType | null>(null)
+  useEffect(() => {
+    import('./scripting').then((m) => setPage(() => m.Scripting))
+  }, [])
+  return Page ? <Page /> : null
+}
+
 export function App() {
+  return (
+    <Switch>
+      <Route path="/scripting/:slug?" component={Reference} />
+      <Route component={Site} />
+    </Switch>
+  )
+}
+
+function Site() {
   const [, params] = useRoute<{ chat?: string; id?: string }>('/:chat?/:id?')
   const [location, navigate] = useLocation()
   const listOnly = params?.chat === 'chats'

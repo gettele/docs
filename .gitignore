@@ -6,3 +6,5 @@ dist
 .deploy.log
 .deploy.lock
 src/data.json
+src/scripting.json
+public/scripting
