@@ -1567,6 +1567,136 @@ blockquote {
   font-size: 12px;
 }
 
+.ref-crumb {
+  flex: none;
+  color: var(--name);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.ref-crumb:hover {
+  color: var(--link);
+}
+
+/* script catalog */
+
+.catalog {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.catalog-item {
+  display: flex;
+  gap: 14px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: var(--input);
+  scroll-margin-top: 16px;
+}
+
+.catalog-item:target {
+  box-shadow: 0 0 0 2px var(--flash);
+}
+
+.catalog-icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: var(--window);
+  font-size: 22px;
+}
+
+.catalog-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.doc .catalog-body h3 {
+  margin: 2px 0 4px;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.catalog-meta {
+  margin-left: 8px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 400;
+}
+
+.doc .catalog-body p {
+  margin: 0 0 8px;
+}
+
+.catalog-grants {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.catalog-grant {
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: var(--code-bg);
+  color: var(--code);
+  font-size: 12.5px;
+  text-decoration: none;
+}
+
+.catalog-grant:hover {
+  background: var(--code-head);
+}
+
+.catalog-grant.none {
+  color: var(--muted);
+}
+
+.catalog-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 16px;
+  margin-top: 12px;
+  font-size: 14px;
+}
+
+.catalog-actions a,
+.catalog-copy {
+  color: var(--link);
+  text-decoration: none;
+}
+
+.catalog-actions a:hover,
+.catalog-copy:hover {
+  text-decoration: underline;
+}
+
+.catalog-copy {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  cursor: pointer;
+}
+
+.catalog-actions .catalog-install {
+  padding: 6px 14px;
+  border-radius: 16px;
+  background: var(--active);
+  color: var(--active-text);
+  font-weight: 600;
+}
+
+.catalog-actions .catalog-install:hover {
+  text-decoration: none;
+  filter: brightness(1.08);
+}
+
 @media (hover: none) {
   .ref-anchor {
     opacity: 1;
@@ -1582,6 +1712,7 @@ blockquote {
     display: grid;
   }
   .ref-home b,
+  .ref-crumb,
   .ref-slash {
     display: none;
   }

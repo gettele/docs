@@ -506,9 +506,18 @@ function Reference() {
   return Page ? <Page /> : null
 }
 
+function CatalogPage() {
+  const [Page, setPage] = useState<ComponentType | null>(null)
+  useEffect(() => {
+    import('./catalog').then((m) => setPage(() => m.Catalog))
+  }, [])
+  return Page ? <Page /> : null
+}
+
 export function App() {
   return (
     <Switch>
+      <Route path="/scripting/catalog" component={CatalogPage} />
       <Route path="/scripting/:slug?" component={Reference} />
       <Route component={Site} />
     </Switch>

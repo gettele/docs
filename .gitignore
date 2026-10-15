@@ -7,4 +7,5 @@ dist
 .deploy.lock
 src/data.json
 src/scripting.json
+src/catalog.json
 public/scripting

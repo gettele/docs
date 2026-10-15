@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync, existsSync, mkdirSync, rmSync } from 'node:fs'
+import { readFileSync, writeFileSync, existsSync, mkdirSync, rmSync, copyFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 const repo = process.env.TELE_REPO ?? new URL('../.tele', import.meta.url).pathname
@@ -28,7 +28,7 @@ const rowPattern = /^\| \[(\d+)\]\(([^)]+)\) \| (.+) \| (.*) \|$/
 
 const features = new Map()
 let section = ''
-for (const line of readFileSync(join(repo, 'docs/features.md'), 'utf8').split('\n')) {
+for (const line of readFileSync(join(repo, 'docs/features.md'), 'utf8').split(/\r?\n/)) {
   const heading = line.match(/^## (.+)$/)
   if (heading) section = heading[1]
   const row = line.match(rowPattern)
@@ -45,7 +45,7 @@ for (const line of readFileSync(join(repo, 'docs/features.md'), 'utf8').split('\
 }
 
 let release = ''
-for (const line of readFileSync(join(repo, 'docs/releases.md'), 'utf8').split('\n')) {
+for (const line of readFileSync(join(repo, 'docs/releases.md'), 'utf8').split(/\r?\n/)) {
   const heading = line.match(/^### \[tele (\d+)\]\(.+\/tag\/([^)]+)\)/)
   if (heading) release = heading[2]
   const row = line.match(rowPattern)
@@ -197,6 +197,26 @@ console.log(
     ? `scripting.json: ${scripting.sections.length} sections, ${scripting.sections.reduce((n, s) => n + s.items.length, 0)} items; SKILL.md and ${scripting.sections.length} reference files`
     : `scripting.json: no ${scriptingFile}, wrote an empty reference`,
 )
+
+const catalogFile = join(repo, 'docs/scripts/index.json')
+const catalogOut = new URL('../src/catalog.json', import.meta.url)
+const catalogDir = new URL('catalog/', skillDir)
+const catalog = existsSync(catalogFile) ? JSON.parse(readFileSync(catalogFile, 'utf8')) : []
+mkdirSync(catalogDir, { recursive: true })
+for (const { id } of catalog) copyFileSync(join(repo, `docs/scripts/${id}/script.ts`), new URL(`${id}.ts`, catalogDir))
+writeFileSync(
+  catalogOut,
+  JSON.stringify(
+    catalog.map((script) => ({
+      ...script,
+      file: `/scripting/catalog/${script.id}.ts`,
+      source: `https://raw.githubusercontent.com/${github}/main/docs/scripts/${script.id}/script.ts`,
+    })),
+    null,
+    1,
+  ),
+)
+console.log(catalog.length ? `catalog.json: ${catalog.length} scripts` : `catalog.json: no ${catalogFile}, wrote an empty catalog`)
 
 let releases
 try {

@@ -231,6 +231,9 @@ export function Scripting() {
           </a>
           <span class="ref-slash">/</span>
           <span class="ref-title">{doc.title}</span>
+          <a class="ref-skill" href="/scripting/catalog" onClick={(e) => plainClick(e) && (e.preventDefault(), navigate('/scripting/catalog'))}>
+            catalog
+          </a>
           <a class="ref-skill mono" href="/scripting/SKILL.md" target="_blank" rel="noopener" title="the whole reference as one file, for your ai agent">
             SKILL.md
           </a>

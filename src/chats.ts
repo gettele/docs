@@ -237,7 +237,7 @@ export const chats: Chat[] = [
       {
         id: 1,
         date: scripts(),
-        text: `# ${emoji('⚙', icons.gear)} scripts\nsmall programs you write yourself that run inside tele. a script can:\n- answer messages for you\n- change what you send before it leaves\n- react to anything that happens in your account`,
+        text: `# ${emoji('⚙', icons.gear)} scripts\nsmall programs you write yourself that run inside tele. a script can:\n- answer messages for you\n- change what you send before it leaves\n- react to anything that happens in your account\n- add buttons, menus, panels and pages to tele's windows\n- use the web: fetch, websockets, workers, crypto and more`,
       },
       {
         id: 2,
@@ -254,6 +254,12 @@ export const chats: Chat[] = [
         date: scripts(),
         text: '## the full reference\nevery method, event and grant, with examples: [gettele.app/scripting](/scripting)\n\n[SKILL.md](/scripting/SKILL.md) is the version for ai agents: a short index that opens one section at a time. give it to your agent and it can write scripts for you',
         buttons: [[{ text: 'open the reference', href: '/scripting', icon: icons.gear }]],
+      },
+      {
+        id: 5,
+        date: scripts(),
+        text: "## ready-made scripts\nthe [catalog](/scripting/catalog) has scripts you can install in one click: tele opens its install box with the link filled in, and the script stays off until you turn it on",
+        buttons: [[{ text: 'open the catalog', href: '/scripting/catalog', icon: icons.gear }]],
       },
     ],
   },
