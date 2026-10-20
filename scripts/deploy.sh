@@ -11,8 +11,10 @@ if [ -d .tele ]; then
 else
   git clone -q --depth 1 https://github.com/nitreojs/tele .tele
 fi
-latest=$(curl -fsS https://api.github.com/repos/nitreojs/tele/releases/latest | sed -n 's/.*"tag_name": *"\([^"]*\)".*/\1/p')
-stamp="$(git rev-parse HEAD) $(git -C .tele rev-parse HEAD) $latest"
+release=$(curl -fsS https://api.github.com/repos/nitreojs/tele/releases/latest)
+latest=$(printf '%s\n' "$release" | sed -n 's/.*"tag_name": *"\([^"]*\)".*/\1/p')
+files=$(printf '%s\n' "$release" | grep -o '"digest": *"[^"]*"' | sort | sha256sum | cut -c1-16)
+stamp="$(git rev-parse HEAD) $(git -C .tele rev-parse HEAD) $latest $files"
 if [ "${1:-}" != "--force" ] && [ -f .stamp ] && [ "$(cat .stamp)" = "$stamp" ]; then
   exit 0
 fi

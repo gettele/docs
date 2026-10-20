@@ -227,7 +227,12 @@ try {
   releases = (await response.json()).map((r) => ({
     tag: r.tag_name,
     date: r.published_at,
-    assets: r.assets.map((a) => ({ name: a.name, size: a.size, url: a.browser_download_url })),
+    assets: r.assets.map((a) => ({
+      name: a.name,
+      size: a.size,
+      url: a.browser_download_url,
+      sha256: (a.digest ?? '').replace(/^sha256:/, ''),
+    })),
   }))
 } catch (error) {
   if (!existsSync(out)) throw error
@@ -241,14 +246,21 @@ const rows = [...features.values()]
   .map((f) => ({ ...f, date: dates.get(f.release) }))
   .sort((a, b) => a.date.localeCompare(b.date) || a.number - b.number)
 
-const latest = releases.find((r) => r.assets.some((a) => a.name === 'tele-update-win64.json'))
-let zipSha256 = ''
-try {
-  const feed = await (await fetch(latest.assets.find((a) => a.name === 'tele-update-win64.json').url)).json()
-  zipSha256 = JSON.parse(Buffer.from(feed.feed, 'base64').toString('utf8')).zip_sha256
-} catch (error) {
-  console.warn(`feed: ${error.message}`)
+const platforms = { windows: '-win64.zip', linux: '-linux64.zip', macos: '-macos.dmg' }
+const downloads = {}
+for (const [platform, suffix] of Object.entries(platforms)) {
+  const release = releases.find((r) => r.assets.some((a) => a.name.endsWith(suffix)))
+  if (!release) throw new Error(`no release has a ${suffix} file`)
+  const asset = release.assets.find((a) => a.name.endsWith(suffix))
+  downloads[platform] = { tag: release.tag, date: release.date, ...asset }
 }
+const latest = releases.find((r) => Object.values(downloads).some((d) => d.tag === r.tag))
+if (!downloads.windows.sha256) console.warn(`no digest for ${downloads.windows.name}`)
 
-writeFileSync(out, JSON.stringify({ latest: { tag: latest.tag, zipSha256 }, releases, features: rows }, null, 1))
-console.log(`data.json: ${rows.length} of ${features.size} features, ${releases.length} releases, latest ${latest.tag} ${zipSha256}`)
+writeFileSync(out, JSON.stringify({ latest: { tag: latest.tag }, downloads, releases, features: rows }, null, 1))
+console.log(
+  `data.json: ${rows.length} of ${features.size} features, ${releases.length} releases, latest ${latest.tag}, ` +
+    Object.entries(downloads)
+      .map(([platform, d]) => `${platform} ${d.tag}`)
+      .join(', '),
+)

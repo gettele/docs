@@ -29,8 +29,8 @@ export type Chat = {
 
 const latest = data.releases.find((r) => r.tag === data.latest.tag)!
 const total = data.features.length
-const asset = (suffix: string) => latest.assets.find((a) => a.name.endsWith(suffix))!
-const zip = asset('-win64.zip')
+const { windows, linux, macos } = data.downloads
+const zip = windows
 
 const at = (start: string) => {
   let t = Date.parse(start)
@@ -43,7 +43,7 @@ const safe = at('2026-10-10T13:05:00Z')
 const scripts = at('2026-10-10T14:30:00Z')
 
 const transcript = [
-  `Loaded digest sha256:${data.latest.zipSha256} for file://${zip.name}`,
+  `Loaded digest sha256:${zip.sha256} for file://${zip.name}`,
   'Loaded 1 attestation from GitHub API',
   '',
   'The following policy criteria will be enforced:',
@@ -80,6 +80,10 @@ const icons = {
 
 const build = latest.tag.replace(/^v[\d.]+-tele\./, '')
 const upstream = latest.tag.replace(/-tele\.\d+$/, '')
+const button = (name: string, file: typeof windows) =>
+  file.tag === latest.tag
+    ? `${name} · ${mb(file.size)}`
+    : `${name} · tele ${file.tag.replace(/^v[\d.]+-tele\./, '')} · ${mb(file.size)}`
 
 export const chats: Chat[] = [
   {
@@ -278,9 +282,9 @@ export const chats: Chat[] = [
         text: `# ${emoji('⬇️', icons.download)} tele ${build}\nbuilt on telegram desktop ${upstream}`,
         buttons: [
           [
-            { text: `windows · ${mb(zip.size)}`, href: zip.url, icon: icons.windows },
-            { text: `linux · ${mb(asset('-linux64.zip').size)}`, href: asset('-linux64.zip').url, icon: icons.linux },
-            { text: `macos · ${mb(asset('-macos.dmg').size)}`, href: asset('-macos.dmg').url, icon: icons.apple },
+            { text: button('windows', windows), href: windows.url, icon: icons.windows },
+            { text: button('linux', linux), href: linux.url, icon: icons.linux },
+            { text: button('macos', macos), href: macos.url, icon: icons.apple },
           ],
         ],
       },
